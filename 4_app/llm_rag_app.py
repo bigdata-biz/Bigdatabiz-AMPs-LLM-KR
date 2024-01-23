@@ -6,6 +6,7 @@ import gradio
 from milvus import default_server
 from pymilvus import connections, Collection
 import utils.model_llm_utils as model_llm
+import utils.model_translation_utils as check_kr, trans_ko2en, trans_en2ko
 import utils.vector_db_utils as vector_db
 import utils.model_embedding_utils as model_embedding
 
@@ -14,9 +15,12 @@ def main():
     # Configure gradio QA app 
     print("Configuring gradio app")
     demo = gradio.Interface(fn=get_responses, 
-                            inputs=gradio.Textbox(label="Question", placeholder=""),
+                            inputs=gradio.Textbox(label="Question (If you enter a question in Korean, translate it into English and ask the question)", placeholder=""),
                             outputs=[gradio.Textbox(label="Asking LLM with No Context"),
-                                     gradio.Textbox(label="Asking LLM with Context (RAG)")],
+                                     gradio.Textbox(label="Asking LLM with Context (RAG)"),
+                                     gradio.Textbox(label="(KR) Question Translation"),
+                                     gradio.Textbox(label="(KR) Asking LLM with No Context"),
+                                     gradio.Textbox(label="(KR) Asking LLM with Context (RAG)")],
                             examples=["What are ML Runtimes?",
                                       "What kinds of users use CML?",
                                       "How do data scientists use CML?",
@@ -34,7 +38,7 @@ def main():
     print("Gradio app ready")
 # Helper function for generating responses for the QA app
 def get_responses(question):
-    
+    question_ko = trans_ko2en(question)
     # Load Milvus Vector DB collection
     vector_db_collection = Collection('cloudera_ml_docs')
     vector_db_collection.load()
@@ -50,12 +54,14 @@ def get_responses(question):
     # Phase 3a: Perform text generation with LLM model using found kb context chunk
     contextResponse = get_llm_response(prompt_with_context)
     rag_response = contextResponse
+    rag_response_kr = trans_en2ko(rag_response)
     
     # Phase 3b: For comparison, also perform text generation with LLM model without providing context
     plainResponse = get_llm_response(prompt_without_context)
     plain_response = plainResponse
+    plain_response_kr = trans_en2ko(plain_response)
 
-    return plain_response, rag_response
+    return plain_response, rag_response, question_ko, rag_response_kr, plain_response_kr
 
 # Get embeddings for a user question and query Milvus vector DB for nearest knowledge base chunk
 def get_nearest_chunk_from_vectordb(vector_db_collection, question):
