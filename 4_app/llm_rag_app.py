@@ -38,7 +38,7 @@ def main():
     print("Gradio app ready")
 # Helper function for generating responses for the QA app
 def get_responses(question):
-    if check_kr(question):
+    if model_trs.check_kr(question):
         question_en = model_trs.trans_ko2en(question)
         question_kr = question
         question_trs = question_en
