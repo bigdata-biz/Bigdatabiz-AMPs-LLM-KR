@@ -18,7 +18,7 @@ def main():
                             inputs=gradio.Textbox(label="Question (If you enter a question in Korean, translate it into English and ask the question)", placeholder=""),
                             outputs=[gradio.Textbox(label="Asking LLM with No Context"),
                                      gradio.Textbox(label="Asking LLM with Context (RAG)"),
-                                     gradio.Textbox(label="(KR) Question Translation"),
+                                     gradio.Textbox(label="Question Translation"),
                                      gradio.Textbox(label="(KR) Asking LLM with No Context"),
                                      gradio.Textbox(label="(KR) Asking LLM with Context (RAG)")],
                             examples=["What are ML Runtimes?",
@@ -38,18 +38,25 @@ def main():
     print("Gradio app ready")
 # Helper function for generating responses for the QA app
 def get_responses(question):
-    question_ko = model_trs.trans_ko2en(question)
+    if check_kr(question)
+        question_en = model_trs.trans_ko2en(question)
+        question_kr = question
+        question_trs = question_en
+    else:
+        question_en = question
+        question_kr = model_trs.trans_en2ko(question)
+        question_trs = question_kr
     # Load Milvus Vector DB collection
     vector_db_collection = Collection('cloudera_ml_docs')
     vector_db_collection.load()
     
     # Phase 1: Get nearest knowledge base chunk for a user question from a vector db
-    context_chunk = get_nearest_chunk_from_vectordb(vector_db_collection, question)
+    context_chunk = get_nearest_chunk_from_vectordb(vector_db_collection, question_en)
     vector_db_collection.release()
     
     # Phase 2: Create enhanced instruction prompts for use with the LLM
-    prompt_with_context = create_enhanced_prompt(context_chunk, question)
-    prompt_without_context = create_enhanced_prompt("none", question)
+    prompt_with_context = create_enhanced_prompt(context_chunk, question_en)
+    prompt_without_context = create_enhanced_prompt("none", question_en)
     
     # Phase 3a: Perform text generation with LLM model using found kb context chunk
     contextResponse = get_llm_response(prompt_with_context)
@@ -61,7 +68,7 @@ def get_responses(question):
     plain_response = plainResponse
     plain_response_kr = model_trs.trans_en2ko(plain_response)
 
-    return plain_response, rag_response, question_ko, rag_response_kr, plain_response_kr
+    return plain_response, rag_response, question_trs, rag_response_kr, plain_response_kr
 
 # Get embeddings for a user question and query Milvus vector DB for nearest knowledge base chunk
 def get_nearest_chunk_from_vectordb(vector_db_collection, question):
