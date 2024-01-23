@@ -6,7 +6,7 @@ import gradio
 from milvus import default_server
 from pymilvus import connections, Collection
 import utils.model_llm_utils as model_llm
-import utils.model_translation_utils as check_kr, trans_ko2en, trans_en2ko
+import utils.model_translation_utils as model_trs
 import utils.vector_db_utils as vector_db
 import utils.model_embedding_utils as model_embedding
 
@@ -38,7 +38,7 @@ def main():
     print("Gradio app ready")
 # Helper function for generating responses for the QA app
 def get_responses(question):
-    question_ko = trans_ko2en(question)
+    question_ko = model_trs.trans_ko2en(question)
     # Load Milvus Vector DB collection
     vector_db_collection = Collection('cloudera_ml_docs')
     vector_db_collection.load()
@@ -54,12 +54,12 @@ def get_responses(question):
     # Phase 3a: Perform text generation with LLM model using found kb context chunk
     contextResponse = get_llm_response(prompt_with_context)
     rag_response = contextResponse
-    rag_response_kr = trans_en2ko(rag_response)
+    rag_response_kr = model_trs.trans_en2ko(rag_response)
     
     # Phase 3b: For comparison, also perform text generation with LLM model without providing context
     plainResponse = get_llm_response(prompt_without_context)
     plain_response = plainResponse
-    plain_response_kr = trans_en2ko(plain_response)
+    plain_response_kr = model_trs.trans_en2ko(plain_response)
 
     return plain_response, rag_response, question_ko, rag_response_kr, plain_response_kr
 
