@@ -68,7 +68,7 @@ def get_responses(question):
     plain_response = plainResponse
     plain_response_kr = model_trs.trans_en2ko(plain_response)
 
-    return plain_response, rag_response, question_trs, rag_response_kr, plain_response_kr
+    return plain_response, rag_response, question_trs, plain_response_kr, rag_response_kr
 
 # Get embeddings for a user question and query Milvus vector DB for nearest knowledge base chunk
 def get_nearest_chunk_from_vectordb(vector_db_collection, question):
